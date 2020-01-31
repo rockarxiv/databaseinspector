@@ -2,7 +2,7 @@ package com.task.databaseinspector.controller;
 
 import com.task.databaseinspector.busobj.dto.TableDto;
 import com.task.databaseinspector.service.TableService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,11 +10,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
 
 @RestController
 @RequestMapping("/table")
+@Slf4j
 public class TableController {
 
     private final TableService tableService;
@@ -24,11 +23,13 @@ public class TableController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<TableDto>> getAll(@RequestParam Long connectionId,
-                                                 @RequestParam(required = false) String schema,
+    public ResponseEntity<Page<TableDto>> getAll(@RequestParam(required = false) String schema,
                                                  @RequestParam(name = "size", defaultValue = "100") int size,
                                                  @RequestParam(name = "page", defaultValue = "0") int page) {
-        return ResponseEntity.ok(tableService.getAll(connectionId, schema, page, size));
+        log.info("Received Tables.getAll request with schema={} page={}, size={}",schema, page, size);
+        final ResponseEntity<Page<TableDto>> tables = ResponseEntity.ok(tableService.getAll(schema, page, size));
+        log.debug("Result for Tables.getAll request\ndata={}", tables);
+        return tables;
     }
 
 }

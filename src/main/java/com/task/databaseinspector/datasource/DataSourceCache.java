@@ -1,4 +1,4 @@
-package com.task.databaseinspector.cache;
+package com.task.databaseinspector.datasource;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -9,7 +9,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -19,13 +19,13 @@ import java.util.concurrent.TimeUnit;
 
 @Component
 @Slf4j
-public class JdbcTemplateCache {
+public class DataSourceCache {
     private static final String URL_TEMPLATE = "jdbc:postgresql://%1$s:%2$s/%3$s";
 
-    @Value("${jdbc.template.cache.size}")
+    @Value("${user.defined.db.cache.size}")
     private int cacheSize;
 
-    @Value("${jdbc.template.cache.expire.after.access.seconds}")
+    @Value("${user.defined.db.cache.expire.after.access.seconds}")
     private int expireAfterAccessSeconds;
 
     @Value("${spring.datasource.driver-class-name}")
@@ -34,42 +34,40 @@ public class JdbcTemplateCache {
     @Value("${user.defined.db.connection.pool.size}")
     private int userDefinedConnectionsPoolSize;
 
-    private Cache<Long, JdbcTemplate> jdbcTemplateCache;
+    private Cache<Long, DataSource> dataSourceCache;
 
     @PostConstruct
     private void initCache() {
-        jdbcTemplateCache = CacheBuilder.newBuilder()
+        dataSourceCache = CacheBuilder.newBuilder()
                 .maximumSize(cacheSize)
                 .expireAfterAccess(expireAfterAccessSeconds, TimeUnit.SECONDS)
                 .removalListener(notification -> {
-                    DataSource dataSource = ((JdbcTemplate) notification.getValue()).getDataSource();
-                    if (dataSource != null) {
-                        ((HikariDataSource) dataSource).close();
-                    }
+                    ((HikariDataSource) notification.getValue()).close();
                 })
                 .build();
     }
 
     @Autowired
+    @Lazy
     private ConnectionService connectionService;
 
 
-    public JdbcTemplate getJdbcTemplate(Long connectionEntityId) {
-        JdbcTemplate jdbcTemplate;
+    public DataSource getDataSource(Long connectionEntityId) {
+        DataSource dataSource;
         try {
-            jdbcTemplate = jdbcTemplateCache.get(connectionEntityId, () -> {
+            dataSource = dataSourceCache.get(connectionEntityId, () -> {
                 ConnectionDto connectionDto = connectionService.get(connectionEntityId);
-                return new JdbcTemplate(createNewPool(connectionDto));
+                return createNewPool(connectionDto);
             });
-            return jdbcTemplate;
+            return dataSource;
         } catch (ExecutionException e) {
-            log.error("Error while trying to get/create jdbcTemplate for connection.id={}", connectionEntityId, e);
+            log.error("Error while trying to get/create dataSource for connection.id={}", connectionEntityId, e);
             return null;
         }
     }
 
     public void removeFromCache(Long connectionEntityId) {
-        jdbcTemplateCache.invalidate(connectionEntityId);
+        dataSourceCache.invalidate(connectionEntityId);
     }
 
     private DataSource createNewPool(ConnectionDto connectionDto) {
@@ -79,6 +77,7 @@ public class JdbcTemplateCache {
         config.setPassword(connectionDto.getPassword());
         config.setJdbcUrl(String.format(URL_TEMPLATE, connectionDto.getHost(), connectionDto.getPort(), connectionDto.getDatabaseName()));
         config.setMaximumPoolSize(userDefinedConnectionsPoolSize);
+        config.setReadOnly(true);
         return new HikariDataSource(config);
     }
 

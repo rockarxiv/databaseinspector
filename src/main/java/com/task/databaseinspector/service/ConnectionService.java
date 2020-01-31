@@ -13,5 +13,5 @@ public interface ConnectionService {
 
     ConnectionDto update(ConnectionDto connectionDto);
 
-    Boolean delete(Long id);
+    void delete(Long id);
 }

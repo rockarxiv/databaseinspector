@@ -5,5 +5,5 @@ import org.springframework.data.domain.Page;
 
 public interface TableService {
 
-    Page<TableDto> getAll(Long connectionId, String schema, int page, int size);
+    Page<TableDto> getAll(String schema, int page, int size);
 }

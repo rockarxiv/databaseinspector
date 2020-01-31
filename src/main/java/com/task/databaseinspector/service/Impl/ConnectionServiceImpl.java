@@ -1,13 +1,12 @@
 package com.task.databaseinspector.service.Impl;
 
 import com.task.databaseinspector.busobj.dto.ConnectionDto;
-import com.task.databaseinspector.busobj.entity.ConnectionEntity;
-import com.task.databaseinspector.cache.JdbcTemplateCache;
-import com.task.databaseinspector.dao.ConnectionDao;
+import com.task.databaseinspector.busobj.entity.prime.ConnectionEntity;
+import com.task.databaseinspector.dao.prime.ConnectionDao;
+import com.task.databaseinspector.datasource.DataSourceCache;
 import com.task.databaseinspector.exception.ConnectionNotFoundException;
 import com.task.databaseinspector.mapping.ConnectionMapper;
 import com.task.databaseinspector.service.ConnectionService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -21,13 +20,13 @@ public class ConnectionServiceImpl implements ConnectionService {
 
     private final ConnectionDao connectionDao;
     private final ConnectionMapper connectionMapper;
-    private final JdbcTemplateCache jdbcTemplateCache;
+    private final DataSourceCache dataSourceCache;
 
-    @Autowired
-    public ConnectionServiceImpl(ConnectionDao connectionDao, @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") ConnectionMapper connectionMapper, JdbcTemplateCache jdbcTemplateCache) {
+
+    public ConnectionServiceImpl(ConnectionDao connectionDao, @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") ConnectionMapper connectionMapper, DataSourceCache dataSourceCache) {
         this.connectionDao = connectionDao;
         this.connectionMapper = connectionMapper;
-        this.jdbcTemplateCache = jdbcTemplateCache;
+        this.dataSourceCache = dataSourceCache;
     }
 
     @Override
@@ -49,22 +48,22 @@ public class ConnectionServiceImpl implements ConnectionService {
     @Override
     public ConnectionDto update(ConnectionDto connectionDto) {
         Optional<ConnectionEntity> optionalEntity = connectionDao.findById(connectionDto.getId());
-        ConnectionDto result = null;
+        ConnectionDto result;
         if(optionalEntity.isPresent()) {
             ConnectionEntity entity = optionalEntity.get();
             connectionMapper.update(entity, connectionDto);
             result = connectionMapper.toDto(connectionDao.save(entity));
-            jdbcTemplateCache.removeFromCache(connectionDto.getId());
+            dataSourceCache.removeFromCache(connectionDto.getId());
+            return result;
         } else {
             throw new ConnectionNotFoundException(connectionDto.getId());
         }
-        return result;
     }
 
     @Override
-    public Boolean delete(Long id) {
+    public void delete(Long id) {
         connectionDao.deleteById(id);
-        jdbcTemplateCache.removeFromCache(id);
-        return true;
+        dataSourceCache.removeFromCache(id);
     }
+
 }

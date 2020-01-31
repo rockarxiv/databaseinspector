@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -55,6 +56,13 @@ public class ControllerExceptionHandler extends ResponseEntityExceptionHandler {
 
         GeneralResponse generalResponse = new GeneralResponse(false, errorMsg);
 
+        return ResponseEntity.badRequest().body(generalResponse);
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleMissingServletRequestParameter(
+            MissingServletRequestParameterException ex, HttpHeaders headers, HttpStatus status, WebRequest request) {
+        final GeneralResponse generalResponse = new GeneralResponse(false, ex.getLocalizedMessage());
         return ResponseEntity.badRequest().body(generalResponse);
     }
 

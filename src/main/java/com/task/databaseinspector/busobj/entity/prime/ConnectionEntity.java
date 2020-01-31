@@ -1,4 +1,4 @@
-package com.task.databaseinspector.busobj.entity;
+package com.task.databaseinspector.busobj.entity.prime;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;

@@ -1,18 +1,20 @@
-package com.task.databaseinspector.busobj.dto;
+package com.task.databaseinspector.busobj.entity.routing;
 
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+import javax.persistence.*;
 import java.util.List;
 
 @Getter
 @Setter
 @ToString
-public class ColumnDto {
-    private String tableSchema;
-    private String tableName;
-    private String columnName;
+@Entity
+@Table(name = "columns", schema = "information_schema")
+public class ColumnEntity {
+    @EmbeddedId
+    private ColumnKey columnKey;
     private String tableCatalog;
     private Integer ordinalPosition;
     private String columnDefault;
@@ -54,5 +56,13 @@ public class ColumnDto {
     private String isGenerated;
     private String generationExpression;
     private String isUpdatable;
-    private List<ConstraintDto> constraintDtos;
+
+    @OneToMany
+    @MapsId("key")
+    @JoinColumns({
+            @JoinColumn(name = "tableSchema", referencedColumnName = "tableSchema"),
+            @JoinColumn(name = "tableName", referencedColumnName = "tableName"),
+            @JoinColumn(name = "columnName", referencedColumnName = "columnName")
+    })
+    private List<ConstraintEntity> constraints;
 }
